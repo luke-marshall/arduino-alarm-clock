@@ -5,6 +5,22 @@
  */
 
 #include <Encoder.h>
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+  #include <avr/power.h>
+#endif
+
+// Which pin on the Arduino is connected to the NeoPixels?
+// On a Trinket or Gemma we suggest changing this to 1
+#define PIN            9
+
+// How many NeoPixels are attached to the Arduino?
+#define NUMPIXELS      60
+
+// When we setup the NeoPixel library, we tell it how many pixels, and which pin to use to send signals.
+// Note that for older NeoPixel strips you might need to change the third parameter--see the strandtest
+// example for more information on possible values.
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
 // Change these two numbers to the pins connected to your encoder.
 //   Best Performance: both pins have interrupt capability
@@ -51,6 +67,7 @@ void setup() {
   Serial.println("Basic Encoder Test:");
     // initialize the pushbutton pin as an input:
   pinMode(BUTTON_PIN, INPUT);
+  pixels.begin(); // This initializes the NeoPixel library.
 }
 
 long oldPosition  = -999;
@@ -102,6 +119,7 @@ void handle_encoder(){
     Serial.print(alarm_hour);
     Serial.print(":");
     Serial.println(alarm_minute);
+    neopixel_set_time(alarm_hour, alarm_minute);
 
     oldPosition = newPosition;
   }
@@ -147,14 +165,14 @@ void handle_button(){
     }
    }
 
-  
+
   
 }
 
 void update_time(){
-
-  if(float(millis()) > float(last_millis) + (1000.0 * 60.0)){
-    last_millis = millis();
+  int current_millis = millis();
+  if(current_millis > float(last_millis) + (1000.0 * 60.0)){
+    last_millis = current_millis;
     current_minute ++;
     
     if(current_minute >= 60){
@@ -168,4 +186,36 @@ void update_time(){
    Serial.print(":");
    Serial.println(current_minute);
   }
+}
+
+
+
+void neopixel_set_time(int hour, int minute){
+  
+  bool AM = hour < 12;
+  hour = hour % 12;
+  //AM case
+  int num_hour_pixels = int(float(hour) * (float(NUMPIXELS) / 12.0));
+
+
+  for(int pixel = 0; pixel < NUMPIXELS; pixel++){
+    pixels.setPixelColor(pixel, pixels.Color(0, 0, 0));
+  }
+//  pixels.show(); // This sends the updated pixel color to the hardware.
+
+  
+  for(int pixel = 0; pixel< num_hour_pixels; pixel++){
+    if(AM){
+      pixels.setPixelColor(pixel, pixels.Color(255, 255, 255));
+    }else{
+       pixels.setPixelColor(pixel, pixels.Color(0, 0, 255));
+    }
+    
+  }
+  
+  int minute_pixel = int(float(minute) * (float(NUMPIXELS)/60.0));
+
+  pixels.setPixelColor(minute_pixel, pixels.Color(255,0,0));
+  pixels.show(); // This sends the updated pixel color to the hardware.
+  
 }
